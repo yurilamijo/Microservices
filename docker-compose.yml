@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  mongo: 
+    image: mongo
+    container_name: catalog-mongodb
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodbdata:/data/db
+
+volumes:
+  mongodbdata: 
