@@ -1,7 +1,9 @@
 ﻿using Catalog.Models;
 using GenericRepository.Repositories;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using static Catalog.Dtos;
+using static Contracts.CatalogContracts;
 
 namespace Catalog.Controllers
 {
@@ -10,18 +12,21 @@ namespace Catalog.Controllers
     public class ItemsController : ControllerBase
     {
         private readonly IRepository<Item> _itemsRepository;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public ItemsController(IRepository<Item> itemsRepository)
+        public ItemsController(IRepository<Item> itemsRepository, IPublishEndpoint publishEndpoint)
         {
             _itemsRepository = itemsRepository;
+            _publishEndpoint = publishEndpoint;
         }
 
         [HttpGet]
-        public async Task<IEnumerable<ItemDto>> GetAsync()
+        public async Task<ActionResult<IEnumerable<ItemDto>>> GetAsync()
         {
             var items = (await _itemsRepository.GetAllAsync())
                         .Select(item => item.AsDto());
-            return items;
+
+            return Ok(items);
         }
 
         [HttpGet("{id}")]
@@ -50,6 +55,8 @@ namespace Catalog.Controllers
 
             await _itemsRepository.CreateAsync(item);
 
+            await _publishEndpoint.Publish(new CatalogItemCreated(item.Id, item.Name, item.Description));
+
             return CreatedAtAction(nameof(GetByIdAsync), new { id = item.Id }, item);
         }
 
@@ -57,19 +64,21 @@ namespace Catalog.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAsync(Guid id, UpdateItemDto updateItemDto)
         {
-            var existingItem = await _itemsRepository.GetAsync(id);
+            var item = await _itemsRepository.GetAsync(id);
 
-            if (existingItem == null)
+            if (item == null)
             {
                 return NotFound();
             }
 
             // TODO: add check if values are changed
-            existingItem.Name = updateItemDto.Name;
-            existingItem.Description = updateItemDto.Description;
-            existingItem.Price = updateItemDto.Price;
+            item.Name = updateItemDto.Name;
+            item.Description = updateItemDto.Description;
+            item.Price = updateItemDto.Price;
 
-            await _itemsRepository.UpdateAsync(existingItem);
+            await _itemsRepository.UpdateAsync(item);
+
+            await _publishEndpoint.Publish(new CatalogItemUpdated(item.Id, item.Name, item.Description));
 
             return NoContent();
         }
@@ -85,6 +94,8 @@ namespace Catalog.Controllers
             }
 
             await _itemsRepository.DeleteAsync(item.Id);
+
+            await _publishEndpoint.Publish(new CatalogItemDeleted(item.Id));
 
             return NoContent();
         }

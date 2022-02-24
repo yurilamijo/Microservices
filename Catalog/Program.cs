@@ -1,11 +1,13 @@
 using Catalog.Models;
-using GenericRepository;
+using GenericRepository.MassTransit;
+using GenericRepository.MongoDb;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddMongo()
-        .AddMongoRepository<Item>("items");
+        .AddMongoRepository<Item>("items")
+        .AddMassTransitWithRabbitMq();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

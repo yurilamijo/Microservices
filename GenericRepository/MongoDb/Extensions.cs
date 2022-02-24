@@ -8,10 +8,15 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
-namespace GenericRepository
+namespace GenericRepository.MongoDb
 {
     public static class Extensions
     {
+        /// <summary>
+        /// Service collection extension methode for MongoDB
+        /// </summary>
+        /// <param name="services">IServiceCollection that gets extended</param>
+        /// <returns>A IServiceCollection with a single MongoDb client</returns>
         public static IServiceCollection AddMongo(this IServiceCollection services)
         {
             // Added serializers for readablity
@@ -31,6 +36,13 @@ namespace GenericRepository
             return services;
         }
 
+        /// <summary>
+        /// Adds a generic MongoDb repository
+        /// </summary>
+        /// <typeparam name="T">Generic type of IEntity</typeparam>
+        /// <param name="services">IServiceCollection that gets extended</param>
+        /// <param name="collectionName">Name of the collection</param>
+        /// <returns>A IServiceCollection with a repository</returns>
         public static IServiceCollection AddMongoRepository<T>(this IServiceCollection services, string collectionName)
             where T : IEntity
         {
