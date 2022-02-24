@@ -11,12 +11,12 @@ namespace Inventory.Controllers
     public class InventoryController : ControllerBase
     {
         private readonly IRepository<InventoryItem> _inventoryRepository;
-        private readonly CatalogClient _catalogClient;
+        private readonly IRepository<CatalogItem> _catalogItemRepository;
 
-        public InventoryController(IRepository<InventoryItem> inventoryRepository, CatalogClient catalogClient)
+        public InventoryController(IRepository<InventoryItem> inventoryRepository, IRepository<CatalogItem> catalogItemRepository)
         {
             _inventoryRepository = inventoryRepository;
-            _catalogClient = catalogClient;
+            _catalogItemRepository = catalogItemRepository;
         }
 
         [HttpGet]
@@ -27,12 +27,18 @@ namespace Inventory.Controllers
                 return BadRequest();
             }
 
-            var catalogItems = await _catalogClient.GetCatalogItemsAsync();
+            // Get inventory items of user
             var inventoryItemsEntities = await _inventoryRepository.GetAllAsync(item => item.UserId == userId);
+            
+            // Get ids of inventory items
+            var itemIds = inventoryItemsEntities.Select(item => item.CatalogItemId);
+            
+            // Get catalog item data
+            var catalogItemEntities = await _catalogItemRepository.GetAllAsync(item => itemIds.Contains(item.Id));
 
             var inventoryItemsDtos = inventoryItemsEntities.Select(inventoryItem =>
             {
-                var catalogItem = catalogItems.Single(catalogItem => catalogItem.Id == inventoryItem.CatalogItemId);
+                var catalogItem = catalogItemEntities.Single(catalogItem => catalogItem.Id == inventoryItem.CatalogItemId);
                 return inventoryItem.AsDto(catalogItem.Name, catalogItem.Description);
             });
 
