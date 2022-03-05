@@ -1,6 +1,7 @@
 ﻿using Catalog.Models;
 using GenericRepository.Repositories;
 using MassTransit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static Catalog.Dtos;
 using static Contracts.CatalogContracts;
@@ -9,6 +10,7 @@ namespace Catalog.Controllers
 {
     [ApiController]
     [Route("items")]
+    [Authorize]
     public class ItemsController : ControllerBase
     {
         private readonly IRepository<Item> _itemsRepository;

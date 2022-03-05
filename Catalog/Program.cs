@@ -1,11 +1,17 @@
 using Catalog.Models;
 using GenericRepository.MassTransit;
 using GenericRepository.MongoDb;
+using GenericRepository.Settings;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var MyAllowSpecificOriginsSetting = "AllowedOrigin";
 
 var builder = WebApplication.CreateBuilder(args);
+
+var configuration = builder.Configuration;
+
+var serviceSettings = configuration.GetSection(nameof(ServiceSettings)).Get<ServiceSettings>();
 
 builder.Services.AddCors(options =>
 {
@@ -22,6 +28,13 @@ builder.Services.AddCors(options =>
 builder.Services.AddMongo()
         .AddMongoRepository<Item>("items")
         .AddMassTransitWithRabbitMq();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = "https://localhost:7063";
+        options.Audience = serviceSettings.ServiceName;
+    });
 
 builder.Services.AddControllers(options =>
 {
@@ -43,6 +56,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
