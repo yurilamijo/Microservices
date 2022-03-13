@@ -2,15 +2,18 @@
 using Inventory.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using static Inventory.Dtos;
 
 namespace Inventory.Controllers
 {
     [ApiController]
     [Route("items")]
-    [Authorize]
     public class InventoryController : ControllerBase
     {
+        private const string AdminRole = "Admin";
+
         private readonly IRepository<InventoryItem> _inventoryRepository;
         private readonly IRepository<CatalogItem> _catalogItemRepository;
 
@@ -21,6 +24,7 @@ namespace Inventory.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<InventoryItem>>> GetAsync(Guid userId)
         {
             if (userId == Guid.Empty)
@@ -28,12 +32,23 @@ namespace Inventory.Controllers
                 return BadRequest();
             }
 
+            // Get subclaim
+            var currentUserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (!Guid.Parse(currentUserId).Equals(userId))
+            {
+                if (!User.IsInRole(AdminRole))
+                {
+                    return Forbid();
+                }
+            }
+
             // Get inventory items of user
             var inventoryItemsEntities = await _inventoryRepository.GetAllAsync(item => item.UserId == userId);
-            
+
             // Get ids of inventory items
             var itemIds = inventoryItemsEntities.Select(item => item.CatalogItemId);
-            
+
             // Get catalog item data
             var catalogItemEntities = await _catalogItemRepository.GetAllAsync(item => itemIds.Contains(item.Id));
 
@@ -47,6 +62,7 @@ namespace Inventory.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> PostAsync(GrantItemsDto itemsDto)
         {
             var inventoryItem = await _inventoryRepository.GetAsync(
