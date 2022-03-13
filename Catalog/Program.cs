@@ -1,4 +1,5 @@
 using Catalog.Models;
+using GenericRepository.Identity;
 using GenericRepository.MassTransit;
 using GenericRepository.MongoDb;
 using GenericRepository.Settings;
@@ -27,14 +28,8 @@ builder.Services.AddCors(options =>
 // Add services to the container.
 builder.Services.AddMongo()
         .AddMongoRepository<Item>("items")
-        .AddMassTransitWithRabbitMq();
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.Authority = "https://localhost:7063";
-        options.Audience = serviceSettings.ServiceName;
-    });
+        .AddMassTransitWithRabbitMq()
+        .AddJwtBearerAuthentication();
 
 builder.Services.AddControllers(options =>
 {

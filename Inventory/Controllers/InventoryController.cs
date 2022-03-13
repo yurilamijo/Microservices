@@ -1,6 +1,6 @@
 ﻿using GenericRepository.Repositories;
-using Inventory.Clients;
 using Inventory.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static Inventory.Dtos;
 
@@ -8,6 +8,7 @@ namespace Inventory.Controllers
 {
     [ApiController]
     [Route("items")]
+    [Authorize]
     public class InventoryController : ControllerBase
     {
         private readonly IRepository<InventoryItem> _inventoryRepository;

@@ -1,3 +1,4 @@
+using GenericRepository.Identity;
 using GenericRepository.MassTransit;
 using GenericRepository.MongoDb;
 using Inventory;
@@ -11,7 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMongo()
         .AddMongoRepository<InventoryItem>("inventoryItems")
         .AddMongoRepository<CatalogItem>("catalogitems")
-        .AddMassTransitWithRabbitMq();
+        .AddMassTransitWithRabbitMq()
+        .AddJwtBearerAuthentication();
 
 builder.Services.AddCors(options =>
 {
@@ -47,6 +49,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

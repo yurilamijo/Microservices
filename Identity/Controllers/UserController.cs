@@ -1,12 +1,15 @@
 ﻿using Identity.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using static Identity.Dtos;
+using static IdentityServer4.IdentityServerConstants;
 
 namespace Identity.Controllers
 {
     [ApiController]
     [Route("users")]
+    [Authorize(Policy = LocalApi.PolicyName)]
     public class UserController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;

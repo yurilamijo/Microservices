@@ -8,10 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="Contracts" Version="1.0.0" />
-    <PackageReference Include="GenericRepository" Version="1.0.2" />
+    <PackageReference Include="GenericRepository" Version="1.0.3" />
     <PackageReference Include="MassTransit.AspNetCore" Version="7.3.1" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="7.3.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>
 
