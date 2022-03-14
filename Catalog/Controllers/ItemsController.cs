@@ -1,6 +1,7 @@
 ﻿using Catalog.Models;
 using GenericRepository.Repositories;
 using MassTransit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static Catalog.Dtos;
 using static Contracts.CatalogContracts;
@@ -11,6 +12,9 @@ namespace Catalog.Controllers
     [Route("items")]
     public class ItemsController : ControllerBase
     {
+        // TODO: Move to Genral code
+        private const string AdminRole = "Admin";
+
         private readonly IRepository<Item> _itemsRepository;
         private readonly IPublishEndpoint _publishEndpoint;
 
@@ -21,6 +25,7 @@ namespace Catalog.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = Policies.Read)]
         public async Task<ActionResult<IEnumerable<ItemDto>>> GetAsync()
         {
             var items = (await _itemsRepository.GetAllAsync())
@@ -30,6 +35,7 @@ namespace Catalog.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Policy = Policies.Read)]
         public async Task<ActionResult<ItemDto>> GetByIdAsync(Guid id)
         {
             var item = await _itemsRepository.GetAsync(id);
@@ -43,6 +49,7 @@ namespace Catalog.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = Policies.Write)]
         public async Task<ActionResult<ItemDto>> PostAsync(CreatedItemDto createdItemDto)
         {
             var item = new Item
@@ -62,6 +69,7 @@ namespace Catalog.Controllers
 
 
         [HttpPut("{id}")]
+        [Authorize(Policy = Policies.Write)]
         public async Task<IActionResult> PutAsync(Guid id, UpdateItemDto updateItemDto)
         {
             var item = await _itemsRepository.GetAsync(id);
@@ -84,6 +92,7 @@ namespace Catalog.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = Policies.Write)]
         public async Task<IActionResult> DeleteAsync(Guid id)
         {
             var item = await _itemsRepository.GetAsync(id);

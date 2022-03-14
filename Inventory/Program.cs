@@ -1,15 +1,30 @@
+using GenericRepository.Identity;
 using GenericRepository.MassTransit;
 using GenericRepository.MongoDb;
 using Inventory;
 using Inventory.Models;
 
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+var MyAllowSpecificOriginsSetting = "AllowedOrigin";
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddMongo()
         .AddMongoRepository<InventoryItem>("inventoryItems")
         .AddMongoRepository<CatalogItem>("catalogitems")
-        .AddMassTransitWithRabbitMq();
+        .AddMassTransitWithRabbitMq()
+        .AddJwtBearerAuthentication();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policyBuilder =>
+                      {
+                          policyBuilder.WithOrigins(builder.Configuration[MyAllowSpecificOriginsSetting])
+                                  .AllowAnyHeader()
+                                  .AllowAnyMethod();
+                      });
+});
 
 // Old Exponential backoff + Circuit breaker pattern
 builder.Services.AddCatalogClient();
@@ -29,10 +44,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors(MyAllowSpecificOrigins);
 }
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
