@@ -1,7 +1,9 @@
 using GenericRepository.Identity;
 using GenericRepository.MassTransit;
 using GenericRepository.MongoDb;
+using GreenPipes;
 using Inventory;
+using Inventory.Exceptions;
 using Inventory.Models;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -12,7 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMongo()
         .AddMongoRepository<InventoryItem>("inventoryItems")
         .AddMongoRepository<CatalogItem>("catalogitems")
-        .AddMassTransitWithRabbitMq()
+        .AddMassTransitWithRabbitMq(retryConfigurator =>
+        {
+            retryConfigurator.Interval(3, TimeSpan.FromSeconds(5));
+            retryConfigurator.Ignore(typeof(UnknownItemException));
+        })
         .AddJwtBearerAuthentication();
 
 builder.Services.AddCors(options =>
