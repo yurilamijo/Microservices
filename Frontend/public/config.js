@@ -11,4 +11,6 @@ window.CATALOG_SERVICE_URL = 'https://localhost:7263'
 window.CATALOG_ITEMS_API_URL = `${window.CATALOG_SERVICE_URL}/items`
 window.INVENTORY_SERVICE_URL = 'https://localhost:7257'
 window.INVENTORY_ITEMS_API_URL = `${window.INVENTORY_SERVICE_URL}/items`
+window.IDENTITY_SERVICE_URL = 'https://localhost:7063'
+window.USERS_API_URL = `${window.IDENTITY_SERVICE_URL}/users`
 window.RABBITMQ_URL = 'http://localhost:15672'

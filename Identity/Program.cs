@@ -5,10 +5,16 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson;
 using Identity.Settings;
 using Identity.Services;
+using GenericRepository.MassTransit;
+using GreenPipes;
+using Identity.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
+
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+var MyAllowSpecificOriginsSetting = "AllowedOrigin";
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
@@ -16,6 +22,19 @@ var serviceSettings = configuration.GetSection(nameof(ServiceSettings)).Get<Serv
 var mongoDbSettings = configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
 var identityServerSettings = configuration.GetSection(nameof(IdentityServerSettings)).Get<IdentityServerSettings>();
 
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+        policyBuilder =>
+        {
+            policyBuilder.WithOrigins(configuration[MyAllowSpecificOriginsSetting])
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
+// Configure IdentityServer
 builder.Services.Configure<IdentitySettings>(configuration.GetSection(nameof(IdentitySettings)))
     .AddDefaultIdentity<ApplicationUser>()
     .AddRoles<ApplicationRole>()
@@ -24,6 +43,13 @@ builder.Services.Configure<IdentitySettings>(configuration.GetSection(nameof(Ide
         mongoDbSettings.ConnectionString,
         serviceSettings.ServiceName
     );
+
+builder.Services.AddMassTransitWithRabbitMq(retryConfigurator =>
+{
+    retryConfigurator.Interval(3, TimeSpan.FromSeconds(5));
+    retryConfigurator.Ignore(typeof(UnknownUserException));
+    retryConfigurator.Ignore(typeof(InsufficientFundsException));
+});
 
 builder.Services.AddIdentityServer(options =>
 {
@@ -56,6 +82,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors(MyAllowSpecificOrigins);
 }
 
 app.UseHttpsRedirection();

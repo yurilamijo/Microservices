@@ -4,6 +4,8 @@
 
 using System;
 using System.Threading.Tasks;
+using Identity.Entities;
+using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +16,30 @@ namespace Identity.Areas.Identity.Pages.Account
 {
     public class LogoutModel : PageModel
     {
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<LogoutModel> _logger;
+        private readonly IIdentityServerInteractionService _interactionService;
 
-        public LogoutModel(SignInManager<IdentityUser> signInManager, ILogger<LogoutModel> logger)
+        public LogoutModel(
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<LogoutModel> logger,
+            IIdentityServerInteractionService interactionService)
         {
             _signInManager = signInManager;
             _logger = logger;
+            _interactionService = interactionService;
+        }
+
+        public async Task<IActionResult> OnGet(string logoutId)
+        {
+            var context = await _interactionService.GetLogoutContextAsync(logoutId);
+
+            if (!context?.ShowSignoutPrompt == false)
+            {
+                return await this.OnPost(context.PostLogoutRedirectUri);
+            }
+
+            return Page();
         }
 
         public async Task<IActionResult> OnPost(string returnUrl = null)
@@ -29,7 +48,7 @@ namespace Identity.Areas.Identity.Pages.Account
             _logger.LogInformation("User logged out.");
             if (returnUrl != null)
             {
-                return LocalRedirect(returnUrl);
+                return Redirect(returnUrl);
             }
             else
             {

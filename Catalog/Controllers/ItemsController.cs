@@ -62,7 +62,7 @@ namespace Catalog.Controllers
 
             await _itemsRepository.CreateAsync(item);
 
-            await _publishEndpoint.Publish(new CatalogItemCreated(item.Id, item.Name, item.Description));
+            await _publishEndpoint.Publish(new CatalogItemCreated(item.Id, item.Name, item.Price, item.Description));
 
             return CreatedAtAction(nameof(GetByIdAsync), new { id = item.Id }, item);
         }
@@ -86,7 +86,7 @@ namespace Catalog.Controllers
 
             await _itemsRepository.UpdateAsync(item);
 
-            await _publishEndpoint.Publish(new CatalogItemUpdated(item.Id, item.Name, item.Description));
+            await _publishEndpoint.Publish(new CatalogItemUpdated(item.Id, item.Name, item.Price, item.Description));
 
             return NoContent();
         }
