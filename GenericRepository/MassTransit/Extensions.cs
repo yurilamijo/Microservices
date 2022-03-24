@@ -24,7 +24,7 @@ namespace GenericRepository.MassTransit
             services.AddMassTransit(configure =>
             {
                 configure.AddConsumers(Assembly.GetEntryAssembly());
-                configure.UsingRabbitMq(configureRetries);
+                configure.UsingCustomRabbitMq(configureRetries);
             });
 
             services.AddMassTransitHostedService();
@@ -32,7 +32,7 @@ namespace GenericRepository.MassTransit
             return services;
         }
 
-        public static void UsingRabbitMq(
+        public static void UsingCustomRabbitMq(
             this IServiceCollectionBusConfigurator configure,
             Action<IRetryConfigurator>? configureRetries)
         {
