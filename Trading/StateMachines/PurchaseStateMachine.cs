@@ -1,4 +1,5 @@
 ﻿using Automatonymous;
+using Trading.Activities;
 using Trading.Contracts;
 
 namespace Trading.StateMachines
@@ -15,11 +16,14 @@ namespace Trading.StateMachines
 
         public Event<PurchaseRequested> PurchaseRequested { get; }
 
+        public Event<GetPurchaseState> GetPurchaseState { get; }
+
         public PurchaseStateMachine()
         {
             InstanceState(state => state.CurrentState);
             ConfigureEvents();
             ConfigureInitialState();
+            ConfigureAny();
         }
 
         /// <summary>
@@ -28,6 +32,7 @@ namespace Trading.StateMachines
         private void ConfigureEvents()
         {
             Event(() => PurchaseRequested);
+            Event(() => GetPurchaseState);
         }
 
         /// <summary>
@@ -46,7 +51,24 @@ namespace Trading.StateMachines
                         context.Instance.Received = DateTimeOffset.UtcNow;
                         context.Instance.LastUpdated = context.Instance.Received;
                     })
+                    .Activity(x => x.OfType<CalculatePurchaseTotalActivity>())
                     .TransitionTo(Accepted)
+                    .Catch<Exception>(ex => ex
+                        .Then(context =>
+                        {
+                            context.Instance.ErrorMessage = context.Exception.Message;
+                            context.Instance.LastUpdated = DateTimeOffset.UtcNow;
+                        })
+                        .TransitionTo(Faulted)
+                    )
+            );
+        }
+
+        private void ConfigureAny()
+        {
+            DuringAny(
+                When(GetPurchaseState)
+                    .Respond(x => x.Instance)
             );
         }
     }
