@@ -1,5 +1,7 @@
 ﻿using Automatonymous;
 using Trading.Contracts;
+using static Contracts.IdentityContracts;
+using static Contracts.InventoryContracts;
 
 namespace Trading.StateMachines
 {
@@ -10,5 +12,8 @@ namespace Trading.StateMachines
         State Faulted { get; }
         State ItemsGranted { get; }
         Event<PurchaseRequested> PurchaseRequested { get; }
+        Event<GetPurchaseState> GetPurchaseState { get; }
+        Event<InventoryItemsGranted> InventoryItemsGranted { get; }
+        Event<PointsDebited> PointsDebited { get; }
     }
 }

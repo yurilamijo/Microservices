@@ -17,7 +17,7 @@ namespace Trading.StateMachines
 
         public DateTimeOffset Received { get; set; }
 
-        public decimal? PurchaseTotal { get; set; }
+        public decimal PurchaseTotal { get; set; }
 
         public DateTimeOffset LastUpdated { get; set; }
 

@@ -1,6 +1,8 @@
 ﻿using Automatonymous;
 using Trading.Activities;
 using Trading.Contracts;
+using static Contracts.IdentityContracts;
+using static Contracts.InventoryContracts;
 
 namespace Trading.StateMachines
 {
@@ -18,12 +20,19 @@ namespace Trading.StateMachines
 
         public Event<GetPurchaseState> GetPurchaseState { get; }
 
+        public Event<InventoryItemsGranted> InventoryItemsGranted { get; }
+
+        public Event<PointsDebited> PointsDebited { get; }
+
+
         public PurchaseStateMachine()
         {
             InstanceState(state => state.CurrentState);
             ConfigureEvents();
             ConfigureInitialState();
             ConfigureAny();
+            ConfigureAccepted();
+            ConfigureCompleted();
         }
 
         /// <summary>
@@ -33,6 +42,8 @@ namespace Trading.StateMachines
         {
             Event(() => PurchaseRequested);
             Event(() => GetPurchaseState);
+            Event(() => InventoryItemsGranted);
+            Event(() => PointsDebited);
         }
 
         /// <summary>
@@ -52,6 +63,11 @@ namespace Trading.StateMachines
                         context.Instance.LastUpdated = context.Instance.Received;
                     })
                     .Activity(x => x.OfType<CalculatePurchaseTotalActivity>())
+                    .Send(context => new GrandItems(
+                        context.Instance.UserId,
+                        context.Instance.ItemId,
+                        context.Instance.Quantity,
+                        context.Instance.CorrelationId))
                     .TransitionTo(Accepted)
                     .Catch<Exception>(ex => ex
                         .Then(context =>
@@ -64,6 +80,42 @@ namespace Trading.StateMachines
             );
         }
 
+        /// <summary>
+        /// Configures the accepted state
+        /// </summary>
+        private void ConfigureAccepted()
+        {
+            During(Accepted,
+                When(InventoryItemsGranted)
+                    .Then(context =>
+                    {
+                        context.Instance.LastUpdated = DateTimeOffset.UtcNow;
+                    })
+                    .Send(context => new DebitPoints(
+                        context.Instance.UserId,
+                        context.Instance.PurchaseTotal,
+                        context.Instance.CorrelationId
+                     ))
+                    .TransitionTo(ItemsGranted));
+        }
+
+        /// <summary>
+        /// Configures the completed state
+        /// </summary>
+        private void ConfigureCompleted()
+        {
+            During(ItemsGranted,
+                When(PointsDebited)
+                    .Then(context => {
+                        context.Instance.LastUpdated = DateTimeOffset.UtcNow;
+                    })
+                    .TransitionTo(Completed)
+            ); ;
+        }
+
+        /// <summary>
+        /// Configures the response on a purchase
+        /// </summary>
         private void ConfigureAny()
         {
             DuringAny(

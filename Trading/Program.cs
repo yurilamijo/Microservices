@@ -7,7 +7,10 @@ using MassTransit;
 using System.Reflection;
 using Trading.Entities;
 using Trading.Exceptions;
+using Trading.Settings;
 using Trading.StateMachines;
+using static Contracts.IdentityContracts;
+using static Contracts.InventoryContracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +29,11 @@ builder.Services.AddMassTransit(configure =>
     });
     // Add consumers that are in this assembly so that MassTranit can use them
     configure.AddConsumers(Assembly.GetEntryAssembly());
-    configure.AddSagaStateMachine<PurchaseStateMachine, PurchaseState>()
+    configure.AddSagaStateMachine<PurchaseStateMachine, PurchaseState>(sagaConfigurator =>
+    {
+        // Delays the message until the state has changed
+        sagaConfigurator.UseInMemoryOutbox();
+    })
         .MongoDbRepository(r =>
         {
             var serviceSettings = builder.Configuration.GetSection(nameof(ServiceSettings)).Get<ServiceSettings>();
@@ -36,8 +43,13 @@ builder.Services.AddMassTransit(configure =>
         });
 });
 
-builder.Services.AddMassTransitHostedService();
+var queueSettings = builder.Configuration.GetSection(nameof(QueueSettings)).Get<QueueSettings>();
 
+// Endpoint conventions
+EndpointConvention.Map<GrandItems>(new Uri(queueSettings.GrandItemsQueueAddress));
+EndpointConvention.Map<DebitPoints>(new Uri(queueSettings.DebitPointsQueueAddress));
+
+builder.Services.AddMassTransitHostedService();
 builder.Services.AddGenericRequestClient();
 
 builder.Services.AddControllers(options =>
