@@ -43,12 +43,21 @@ namespace Inventory.Consumers
                     AcquiredDate = DateTimeOffset.UtcNow
                 };
 
+                inventoryItem.MessageIds.Add(context.MessageId.Value);
+
                 await _inventoryRepository.CreateAsync(inventoryItem);
             }
             else
             {
+                if (inventoryItem.MessageIds.Contains(context.MessageId.Value))
+                {
+                    await context.Publish(new InventoryItemsGranted(message.CorrelationId));
+                    return;
+                }
+
                 // If item was found
                 inventoryItem.Quantity += message.Quantity;
+                inventoryItem.MessageIds.Add(context.MessageId.Value);
                 await _inventoryRepository.UpdateAsync(inventoryItem);
             }
 

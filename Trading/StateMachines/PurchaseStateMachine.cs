@@ -1,4 +1,5 @@
 ﻿using Automatonymous;
+using MassTransit;
 using Trading.Activities;
 using Trading.Contracts;
 using static Contracts.IdentityContracts;
@@ -24,6 +25,10 @@ namespace Trading.StateMachines
 
         public Event<PointsDebited> PointsDebited { get; }
 
+        public Event<Fault<GrandItems>> GrandItemsFaulted { get; }
+
+        public Event<Fault<DebitPoints>> DebitPointsFaulted { get; }
+
 
         public PurchaseStateMachine()
         {
@@ -32,6 +37,8 @@ namespace Trading.StateMachines
             ConfigureInitialState();
             ConfigureAny();
             ConfigureAccepted();
+            ConfigureItemsGranted();
+            ConfigureFaulted();
             ConfigureCompleted();
         }
 
@@ -44,6 +51,12 @@ namespace Trading.StateMachines
             Event(() => GetPurchaseState);
             Event(() => InventoryItemsGranted);
             Event(() => PointsDebited);
+            Event(() => GrandItemsFaulted, x =>
+                x.CorrelateById(context => context.Message.Message.CorrelationId)
+            );
+            Event(() => DebitPointsFaulted, x =>
+                x.CorrelateById(context => context.Message.Message.CorrelationId)
+            );
         }
 
         /// <summary>
@@ -85,7 +98,8 @@ namespace Trading.StateMachines
         /// </summary>
         private void ConfigureAccepted()
         {
-            During(Accepted,
+            During(Accepted, 
+                Ignore(PurchaseRequested),
                 When(InventoryItemsGranted)
                     .Then(context =>
                     {
@@ -96,7 +110,45 @@ namespace Trading.StateMachines
                         context.Instance.PurchaseTotal,
                         context.Instance.CorrelationId
                      ))
-                    .TransitionTo(ItemsGranted));
+                    .TransitionTo(ItemsGranted),
+                    When(GrandItemsFaulted)
+                        .Then(context =>
+                        {
+                            context.Instance.ErrorMessage = context.Data.Exceptions[0].Message;
+                            context.Instance.LastUpdated = DateTimeOffset.UtcNow;
+                        })
+                        .TransitionTo(Faulted)
+                );
+        }
+
+        /// <summary>
+        /// Configures the items granted state
+        /// </summary>
+        private void ConfigureItemsGranted()
+        {
+            During(ItemsGranted,
+                Ignore(PurchaseRequested),
+                Ignore(InventoryItemsGranted),
+                When(PointsDebited)
+                        .Then(context =>
+                        {
+                            context.Instance.LastUpdated = DateTimeOffset.UtcNow;
+                        })
+                        .TransitionTo(Completed),
+                    When(DebitPointsFaulted)
+                        .Send(context => new SubstractItems(
+                            context.Instance.UserId,
+                            context.Instance.ItemId,
+                            context.Instance.Quantity,
+                            context.Instance.CorrelationId
+                        ))
+                        .Then(context =>
+                        {
+                            context.Instance.ErrorMessage = context.Data.Exceptions[0].Message;
+                            context.Instance.LastUpdated = DateTimeOffset.UtcNow;
+                        })
+                        .TransitionTo(Faulted)
+            ); ;
         }
 
         /// <summary>
@@ -104,13 +156,11 @@ namespace Trading.StateMachines
         /// </summary>
         private void ConfigureCompleted()
         {
-            During(ItemsGranted,
-                When(PointsDebited)
-                    .Then(context => {
-                        context.Instance.LastUpdated = DateTimeOffset.UtcNow;
-                    })
-                    .TransitionTo(Completed)
-            ); ;
+            During(Completed,
+                Ignore(PurchaseRequested),
+                Ignore(InventoryItemsGranted),
+                Ignore(PointsDebited)
+            );
         }
 
         /// <summary>
@@ -121,6 +171,15 @@ namespace Trading.StateMachines
             DuringAny(
                 When(GetPurchaseState)
                     .Respond(x => x.Instance)
+            );
+        }
+
+        private void ConfigureFaulted()
+        {
+            During(Faulted,
+                Ignore(PurchaseRequested),
+                Ignore(InventoryItemsGranted),
+                Ignore(PointsDebited)
             );
         }
     }

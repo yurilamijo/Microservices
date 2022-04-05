@@ -13,5 +13,7 @@ namespace Inventory.Models
         public int Quantity { get; set; }
 
         public DateTimeOffset AcquiredDate { get; set; }
+
+        public HashSet<Guid> MessageIds { get; set; } = new();
     }
 }

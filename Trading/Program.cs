@@ -48,6 +48,7 @@ var queueSettings = builder.Configuration.GetSection(nameof(QueueSettings)).Get<
 // Endpoint conventions
 EndpointConvention.Map<GrandItems>(new Uri(queueSettings.GrandItemsQueueAddress));
 EndpointConvention.Map<DebitPoints>(new Uri(queueSettings.DebitPointsQueueAddress));
+EndpointConvention.Map<SubstractItems>(new Uri(queueSettings.SubtractItemsQueueAddress));
 
 builder.Services.AddMassTransitHostedService();
 builder.Services.AddGenericRequestClient();

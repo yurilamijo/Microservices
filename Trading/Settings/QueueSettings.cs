@@ -5,5 +5,7 @@
         public string GrandItemsQueueAddress { get; init; }
 
         public string DebitPointsQueueAddress { get; init; }
+
+        public string SubtractItemsQueueAddress { get; init; }
     }
 }

@@ -31,7 +31,14 @@ namespace Identity.Consumers
                 throw new InsufficientFundsException(message.UserId, message.Points);
             }
 
+            if (user.MessageIds.Contains(context.MessageId.Value))
+            {
+                await context.Publish(new PointsDebited(message.CorrelationId));
+                return;
+            }
+
             user.Points -= message.Points;
+            user.MessageIds.Add(context.MessageId.Value);
 
             await _userManager.UpdateAsync(user);
 
