@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Contracts;
+using MassTransit;
 using static Inventory.Dtos;
 
 namespace Inventory.Controllers
@@ -16,11 +18,16 @@ namespace Inventory.Controllers
 
         private readonly IRepository<InventoryItem> _inventoryRepository;
         private readonly IRepository<CatalogItem> _catalogItemRepository;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public InventoryController(IRepository<InventoryItem> inventoryRepository, IRepository<CatalogItem> catalogItemRepository)
+        public InventoryController(
+            IRepository<InventoryItem> inventoryRepository, 
+            IRepository<CatalogItem> catalogItemRepository, 
+            IPublishEndpoint publishEndpoint)
         {
             _inventoryRepository = inventoryRepository;
             _catalogItemRepository = catalogItemRepository;
+            _publishEndpoint = publishEndpoint;
         }
 
         [HttpGet]
@@ -88,6 +95,8 @@ namespace Inventory.Controllers
                 inventoryItem.Quantity += itemsDto.Quantity;
                 await _inventoryRepository.UpdateAsync(inventoryItem);
             }
+
+            await _publishEndpoint.Publish(new InventoryContracts.InventoryItemUpdated(inventoryItem.UserId, inventoryItem.CatalogItemId, inventoryItem.Quantity));
 
             return Ok();
         }

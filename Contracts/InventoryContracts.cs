@@ -9,5 +9,7 @@
         public record SubstractItems(Guid UserId, Guid CatalogItemId, int Quantity, Guid CorrelationId);
 
         public record InventoryItemsSubstracted(Guid CorrelationId);
+
+        public record InventoryItemUpdated(Guid UserId, Guid CatalogItemId, int NewTotalQuantity);
     }
 }
